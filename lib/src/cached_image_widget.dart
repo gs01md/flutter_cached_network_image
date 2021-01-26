@@ -357,13 +357,23 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
   }
 
   _image(BuildContext context, ImageProvider imageProvider) {
+    ImageProvider imageResizeProvider = imageProvider;
+
+    double cachedWidth = widget.width;
+    double cachedHeight = widget.height;
+    if((cachedWidth != null) && (cachedHeight != null)) {
+      imageResizeProvider = ResizeImage.resizeIfNeeded(
+          cachedWidth.toInt() * 2, cachedHeight.toInt() * 2, imageProvider);
+    }
+
     return widget.imageBuilder != null
-        ? widget.imageBuilder(context, imageProvider)
+        ? widget.imageBuilder(context, imageResizeProvider)
         : Image(
-            image: imageProvider,
+            image:imageResizeProvider,
             fit: widget.fit,
             width: widget.width,
             height: widget.height,
+
             alignment: widget.alignment,
             repeat: widget.repeat,
             color: widget.color,
