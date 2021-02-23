@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -74,6 +76,9 @@ class CachedNetworkImage extends StatefulWidget {
   /// The default varies based on the other fields. See the discussion at
   /// [paintImage].
   final BoxFit fit;
+
+  /// 清晰度参数 图片根据控件的大小设置分辨率
+  final double devicePixelRatio;
 
   /// How to align the image within its bounds.
   ///
@@ -171,6 +176,7 @@ class CachedNetworkImage extends StatefulWidget {
     this.colorBlendMode,
     this.placeholderFadeInDuration,
     this.circleAvatar : false,
+    this.devicePixelRatio : 2.0,
   })  : assert(imageUrl != null),
         assert(fadeOutDuration != null),
         assert(fadeOutCurve != null),
@@ -222,6 +228,8 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
 
   Image _imageSave;
 
+  double devicePixelRatio = 2.0;
+
   @override
   Widget build(BuildContext context) {
     return _animatedWidget();
@@ -230,11 +238,17 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
   @override
   void initState() {
 
+    if(widget.devicePixelRatio != null ){
+      devicePixelRatio = widget.devicePixelRatio;
+    }
+
     super.initState();
 
     imageWidth = widget.width;
     if(imageWidth == null || imageWidth == 0){
-      imageWidth = 28;
+      imageWidth = 28*devicePixelRatio;
+    }else{
+      imageWidth *= devicePixelRatio;
     }
 
     initSize();
@@ -244,8 +258,8 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     Future.delayed(Duration(milliseconds: 100), () {
       var size = context?.findRenderObject()?.paintBounds?.size;
       if(size!=null){
-        imageWidth = size.width;
-        imageHeight = size.height;
+        imageWidth = size.width * devicePixelRatio;
+        imageHeight = size.height * devicePixelRatio;
       }
     });
   }
@@ -478,9 +492,9 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     return widget.placeholder != null
         ? widget.placeholder(context, widget.imageUrl)
         : SizedBox(
-            width: widget.width,
-            height: widget.height,
-          );
+      width: widget.width,
+      height: widget.height,
+    );
   }
 
   _errorWidget(BuildContext context, Object error) {
