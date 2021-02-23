@@ -220,7 +220,7 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
   double imageHeight = 0.0;
   double imageWidth = 0.0;
 
-  Image _imageTemp;
+  Image _imageSave;
 
   @override
   Widget build(BuildContext context) {
@@ -228,57 +228,113 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
   }
 
   @override
-  void didUpdateWidget(CachedNetworkImage oldWidget) {
-    if (oldWidget.imageUrl != widget.imageUrl) {
-      _streamBuilderKey = UniqueKey();
-      if (!widget.useOldImageOnUrlChange) {
-        _disposeImageHolders();
-        _imageHolders.clear();
+  void initState() {
+
+    super.initState();
+
+    imageWidth = widget.width;
+    if(imageWidth == null || imageWidth == 0){
+      imageWidth = 28;
+    }
+
+    initSize();
+  }
+
+  void initSize(){
+    Future.delayed(Duration(milliseconds: 100), () {
+      var size = context?.findRenderObject()?.paintBounds?.size;
+      if(size!=null){
+        imageWidth = size.width;
+        imageHeight = size.height;
       }
-    }
-    super.didUpdateWidget(oldWidget);
-  }
-
-  @override
-  void dispose() {
-    _disposeImageHolders();
-    super.dispose();
-  }
-
-  _disposeImageHolders() {
-    for (var imageHolder in _imageHolders) {
-      imageHolder.dispose();
-    }
-  }
-
-  loadImageFromFile(String url)  {
-
-    if(this.imageHeight != null && this.imageHeight > 0){
-      return;
-    }
-
-    AssetBundle _bundle = rootBundle;
-    ImageStream stream = new FileImage(File.fromUri(Uri.parse(url)),).resolve(ImageConfiguration.empty);
-    Completer<ui.Image> completer = new Completer<ui.Image>();
-    ImageStreamListener listener;
-    listener = new ImageStreamListener(
-            (ImageInfo frame, bool synchronousCall) {
-          final ui.Image image = frame.image;
-          completer.complete(image);
-          stream.removeListener(listener);
-        });
-    stream.addListener(listener);
-
-    completer.future.then((image){
-
-      translate(image.width.toDouble(),image.height.toDouble());
-
-      setState((){
-
-      });
-
     });
-//    return completer.future;
+  }
+
+
+  _animatedWidget() {
+    var fromMemory = _cacheManager().getFileFromMemory(widget.imageUrl);
+
+    return StreamBuilder<FileInfo>(
+      key: _streamBuilderKey,
+      initialData: fromMemory,
+      stream: _cacheManager()
+          .getFile(widget.imageUrl, headers: widget.httpHeaders)
+      // ignore errors if not mounted
+          .handleError(() {}, test: (_) => !mounted)
+          .where((f) =>
+      f?.originalUrl != fromMemory?.originalUrl ||
+          f?.validTill != fromMemory?.validTill),
+      builder: (BuildContext context, AsyncSnapshot<FileInfo> snapshot) {
+        if (snapshot.hasError) {
+          // error
+          if (_imageHolders.length == 0 || _imageHolders.last.error == null) {
+            _addImage(image: null, error: snapshot.error);
+          }
+        } else {
+          var fileInfo = snapshot.data;
+
+          if (fileInfo == null) {
+            // placeholder
+            if (_imageHolders.length == 0 || _imageHolders.last.image != null) {
+              _addImage(
+                  image: null,
+                  duration: widget.placeholderFadeInDuration ?? Duration.zero);
+            }
+          } else if (_imageHolders.length == 0 ||
+              _imageHolders.last.image?.originalUrl != fileInfo.originalUrl ||
+              _imageHolders.last.image?.validTill != fileInfo.validTill) {
+
+            _addImage(
+                image: fileInfo,
+                duration: _imageHolders.length > 0 ? null : Duration.zero);
+          }
+        }
+
+        var children = <Widget>[];
+        for (var holder in _imageHolders) {
+          if (holder.error != null) {
+            children.add(_transitionWidget(
+                holder: holder, child: _errorWidget(context, holder.error)));
+          } else if (holder.image == null) {
+            children.add(_transitionWidget(
+                holder: holder, child: _placeholder(context)));
+          } else {
+            int targetWidth;
+            int targetHeight;
+            if (widget.width != null &&
+                widget.width != double.infinity &&
+                widget.width != double.nan){
+
+              targetWidth = (widget.width * window.devicePixelRatio).round();
+            }
+
+            if (widget.height != null &&
+                widget.height != double.infinity &&
+                widget.height != double.nan){
+
+              targetHeight = (widget.height * window.devicePixelRatio).round();
+            }
+
+            children.add(_transitionWidget(
+                holder: holder,
+                child: _image(
+                  context,
+//                  ScaledFileImage(holder.image.file),
+                  ScaledFileImage(holder.image.file,targetWidth: imageWidth.toInt()),
+//                  ScaledFileImage(holder.image.file,targetWidth: this.imageWidth.toInt(), targetHeight: this.imageHeight.toInt()),
+                )));
+
+//            debugPrint("\nScaledFileImage : this.imageWidth ${this.imageWidth} ; this.imageHeight ${this.imageHeight}");
+          }
+        }
+
+        return Stack(
+          fit: StackFit.passthrough,
+          alignment: widget.alignment,
+          children: children.toList(),
+        );
+      },
+    );
   }
 
   _addImage({FileInfo image, Object error, Duration duration}) {
@@ -318,90 +374,13 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     );
   }
 
-  _animatedWidget() {
-    var fromMemory = _cacheManager().getFileFromMemory(widget.imageUrl);
 
-    return StreamBuilder<FileInfo>(
-      key: _streamBuilderKey,
-      initialData: fromMemory,
-      stream: _cacheManager()
-          .getFile(widget.imageUrl, headers: widget.httpHeaders)
-          // ignore errors if not mounted
-          .handleError(() {}, test: (_) => !mounted)
-          .where((f) =>
-              f?.originalUrl != fromMemory?.originalUrl ||
-              f?.validTill != fromMemory?.validTill),
-      builder: (BuildContext context, AsyncSnapshot<FileInfo> snapshot) {
-        if (snapshot.hasError) {
-          // error
-          if (_imageHolders.length == 0 || _imageHolders.last.error == null) {
-            _addImage(image: null, error: snapshot.error);
-          }
-        } else {
-          var fileInfo = snapshot.data;
+  /// 获取当前控件的大小
+  Size getWidgetSize(){
 
-          if (fileInfo == null) {
-            // placeholder
-            if (_imageHolders.length == 0 || _imageHolders.last.image != null) {
-              _addImage(
-                  image: null,
-                  duration: widget.placeholderFadeInDuration ?? Duration.zero);
-            }
-          } else if (_imageHolders.length == 0 ||
-              _imageHolders.last.image?.originalUrl != fileInfo.originalUrl ||
-              _imageHolders.last.image?.validTill != fileInfo.validTill) {
+    Size size = context?.findRenderObject()?.paintBounds?.size;
 
-            loadImageFromFile(fileInfo.file.path);
-
-            _addImage(
-                image: fileInfo,
-                duration: _imageHolders.length > 0 ? null : Duration.zero);
-          }
-        }
-
-        var children = <Widget>[];
-        for (var holder in _imageHolders) {
-          if (holder.error != null) {
-            children.add(_transitionWidget(
-                holder: holder, child: _errorWidget(context, holder.error)));
-          } else if (holder.image == null) {
-            children.add(_transitionWidget(
-                holder: holder, child: _placeholder(context)));
-          } else {
-//            int targetWidth;
-//            int targetHeight;
-//            if (widget.width != null &&
-//                widget.width != double.infinity &&
-//                widget.width != double.nan){
-//
-//              targetWidth = (widget.width * window.devicePixelRatio).round();
-//            }
-//
-//            if (widget.height != null &&
-//                widget.height != double.infinity &&
-//                widget.height != double.nan){
-//
-//              targetHeight = (widget.height * window.devicePixelRatio).round();
-//            }
-
-            children.add(_transitionWidget(
-                holder: holder,
-                child: _image(
-                  context,
-                  ScaledFileImage(holder.image.file,targetWidth: this.imageWidth.toInt(), targetHeight: this.imageHeight.toInt()),
-                )));
-
-            debugPrint("\nScaledFileImage : this.imageWidth ${this.imageWidth} ; this.imageHeight ${this.imageHeight}");
-          }
-        }
-
-        return Stack(
-          fit: StackFit.passthrough,
-          alignment: widget.alignment,
-          children: children.toList(),
-        );
-      },
-    );
+    return size;
   }
 
   /// 根据实际的图片宽度，设置压缩的图片宽度
@@ -459,6 +438,14 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
 //      print("\n ResizeImage ${DateTime.now()}\n");
 //    }
 
+
+//    double cachedWidth = widget.width;
+//    double cachedHeight = widget.height;
+//    if((cachedWidth != null) && (cachedHeight != null)) {
+//      imageResizeProvider = ResizeImage.resizeIfNeeded(
+//          cachedWidth.toInt() * 2, cachedHeight.toInt() * 2, imageProvider);
+//    }
+
     Widget result = widget.imageBuilder != null
         ? widget.imageBuilder(context, imageResizeProvider)
         : buildImage(imageResizeProvider);
@@ -470,7 +457,7 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
 
   Image buildImage(ImageProvider imageResizeProvider){
 
-    _imageTemp = Image(
+    _imageSave = Image(
       image:imageResizeProvider,
       fit: widget.fit,
 //      width: widget.width,
@@ -483,9 +470,8 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
       filterQuality: widget.filterQuality,
     );
 
-//    print("图片的宽度：${_imageTemp.width} , 图片的高度：${_imageTemp.height} ");
+    return _imageSave;
 
-    return _imageTemp;
   }
 
   _placeholder(BuildContext context) {
@@ -501,5 +487,61 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     return widget.errorWidget != null
         ? widget.errorWidget(context, widget.imageUrl, error)
         : _placeholder(context);
+  }
+
+  @override
+  void didUpdateWidget(CachedNetworkImage oldWidget) {
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _streamBuilderKey = UniqueKey();
+      if (!widget.useOldImageOnUrlChange) {
+        _disposeImageHolders();
+        _imageHolders.clear();
+      }
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  void dispose() {
+    _disposeImageHolders();
+    super.dispose();
+  }
+
+  _disposeImageHolders() {
+    for (var imageHolder in _imageHolders) {
+      imageHolder.dispose();
+    }
+  }
+
+  loadImageFromFile(String url)  {
+
+    if(this.imageHeight != null && this.imageHeight > 0){
+      return;
+    }
+
+    ImageStream stream = new FileImage(File.fromUri(Uri.parse(url)),).resolve(ImageConfiguration.empty);
+    Completer<ui.Image> completer = new Completer<ui.Image>();
+    ImageStreamListener listener;
+    listener = new ImageStreamListener(
+            (ImageInfo frame, bool synchronousCall) {
+          ui.Image image = frame.image;
+          completer.complete(image);
+          stream.removeListener(listener);
+
+        });
+    stream.addListener(listener);
+
+    completer.future.then((image){
+
+      translate(image.width.toDouble(),image.height.toDouble());
+
+      setState((){
+
+      });
+
+    });
+
+
+//    return completer.future;
   }
 }
