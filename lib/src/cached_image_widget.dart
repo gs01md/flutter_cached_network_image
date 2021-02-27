@@ -231,8 +231,6 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     }else{
       if(imageWidth != null &&  imageWidth > 0){
         imageWidth *= devicePixelRatio;
-      }else{
-        imageWidth *= 28;
       }
 
     }
