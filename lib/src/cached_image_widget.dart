@@ -392,14 +392,14 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
   ImageProvider resizeImage(File file){
 
     if(imageWidth != null &&  imageWidth > 0 ){
-      if( _imageSave == null){
+//      if( _imageSave == null){
         _imageSave = ResizeImage(FileImage(file),width: (imageWidth).toInt());
-      }
+//      }
     }else{
       if(imageHeight != null &&  imageHeight > 0){
-        if(_imageSave == null){
+//        if(_imageSave == null){
           _imageSave = ResizeImage(FileImage(file),height: (imageHeight).toInt());
-        }
+//        }
       }else{
         return FileImage(file);
       }
