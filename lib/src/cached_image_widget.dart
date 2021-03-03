@@ -393,15 +393,14 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
 
     if(imageWidth != null &&  imageWidth > 0 ){
       if( _imageSave == null){
-        _imageSave = ResizeImage(FileImage(file),width: (imageWidth * devicePixelRatio).toInt());
+        _imageSave = ResizeImage(FileImage(file),width: (imageWidth).toInt());
       }
     }else{
       if(imageHeight != null &&  imageHeight > 0){
         if(_imageSave == null){
-          _imageSave = ResizeImage(FileImage(file),height: (imageHeight * devicePixelRatio).toInt());
+          _imageSave = ResizeImage(FileImage(file),height: (imageHeight).toInt());
         }
       }else{
-
         return FileImage(file);
       }
     }

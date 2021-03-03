@@ -44,12 +44,6 @@
       "languageVersion": "2.0"
     },
     {
-      "name": "clock",
-      "rootUri": "file:///Applications/flutter/.pub-cache/hosted/pub.flutter-io.cn/clock-1.0.1",
-      "packageUri": "lib/",
-      "languageVersion": "2.0"
-    },
-    {
       "name": "collection",
       "rootUri": "file:///Applications/flutter/.pub-cache/hosted/pub.flutter-io.cn/collection-1.14.11",
       "packageUri": "lib/",
@@ -93,9 +87,9 @@
     },
     {
       "name": "flutter_cache_manager",
-      "rootUri": "file:///Applications/flutter/.pub-cache/hosted/pub.flutter-io.cn/flutter_cache_manager-1.4.2",
+      "rootUri": "file:///Applications/flutter/.pub-cache/git/flutter_cache_manager-040ea22f6e130d295e484568aaf8271f73f8e896/",
       "packageUri": "lib/",
-      "languageVersion": "2.6"
+      "languageVersion": "2.0"
     },
     {
       "name": "glob",
@@ -258,12 +252,6 @@
       "rootUri": "file:///Applications/flutter/.pub-cache/hosted/pub.flutter-io.cn/pub_semver-1.4.4",
       "packageUri": "lib/",
       "languageVersion": "2.0"
-    },
-    {
-      "name": "rxdart",
-      "rootUri": "file:///Applications/flutter/.pub-cache/hosted/pub.flutter-io.cn/rxdart-0.24.1",
-      "packageUri": "lib/",
-      "languageVersion": "2.6"
     },
     {
       "name": "shelf",
@@ -440,7 +428,7 @@
       "languageVersion": "2.0"
     }
   ],
-  "generated": "2021-03-03T02:26:19.330906Z",
+  "generated": "2021-03-03T06:37:54.812750Z",
   "generator": "pub",
   "generatorVersion": "2.7.0"
 }
