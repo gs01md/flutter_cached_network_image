@@ -234,11 +234,10 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
 
     if(imageHeight != null &&  imageHeight > 0){
       imageHeight *= devicePixelRatio;
-    }else{
-      if(imageWidth != null &&  imageWidth > 0){
-        imageWidth *= devicePixelRatio;
-      }
+    }
 
+    if(imageWidth != null &&  imageWidth > 0){
+      imageWidth *= devicePixelRatio;
     }
 
     initSize();
