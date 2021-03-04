@@ -139,6 +139,11 @@ class CachedNetworkImage extends StatefulWidget {
   /// 是否是圆形头像
   final bool circleAvatar;
 
+  /// 有的控件要需要刷新，比如：首页有个图片，切换用户时，图片会换，那就需要刷新
+  /// 有个界面不需要刷新图片，比如：轮播图，这是不变的；如果刷新，会导致闪烁
+  /// 默认刷新，因为轮播图比较很少
+  final bool alwaysRefresh;
+
   CachedNetworkImage({
     Key key,
     @required this.imageUrl,
@@ -164,6 +169,7 @@ class CachedNetworkImage extends StatefulWidget {
     this.placeholderFadeInDuration,
     this.circleAvatar : false,
     this.devicePixelRatio : 2.0,
+    this.alwaysRefresh : true,
   })  : assert(imageUrl != null),
         assert(fadeOutDuration != null),
         assert(fadeOutCurve != null),
@@ -389,19 +395,33 @@ class CachedNetworkImageState extends State<CachedNetworkImage>
     );
   }
 
+  /// 检查是否需要刷新，默认是始终要刷新的
+  /// 这样可以避免控件内容切换时，图片没有变化
+  bool checkRefresh(){
+    bool result = true;
+    if(!widget.alwaysRefresh && _imageSave!=null){
+      result = false;
+    }
+
+    return result;
+
+  }
+
   ImageProvider resizeImage(File file){
 
     if(imageWidth != null &&  imageWidth > 0 ){
-//      if( _imageSave == null){
+      if( checkRefresh()){
         _imageSave = ResizeImage(FileImage(file),width: (imageWidth).toInt());
-//      }
+      }
     }else{
       if(imageHeight != null &&  imageHeight > 0){
-//        if(_imageSave == null){
+        if(checkRefresh()){
           _imageSave = ResizeImage(FileImage(file),height: (imageHeight).toInt());
-//        }
+        }
       }else{
-        return FileImage(file);
+        if(checkRefresh()){
+          _imageSave = FileImage(file);
+        }
       }
     }
 
